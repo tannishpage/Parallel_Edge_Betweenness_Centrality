@@ -1,2 +1,3 @@
-# Parallel_Edge_Betweenness_Centrality
-A parallelised implementation of Edge Betweenness Centrality as implemented in the python package NetworkX 
+# Parallelized Edge Betweenness Centrality
+
+When computing Edge Betweenness Centrality (EBC) either Breadth First Search (BFS) or Dijkstra's algorithm are run repeatedly on all (or a sample) of nodes the results are then used to update the betweenness values for each edge. The BFS and Dijkstra's algorithm calls are independent of each other in EBC, therefore we can utilise paralelization to speed up the computation of EBC. In the file parellel_EBC.py I have used the multiprocessing library in python to achieve this. By extending the multiprocessing.Process class and defining my own run method I have been able to successfully paralellize EBC and speed up the computation. The code used is an extension of the EBC implementation in the NetworkX library.
