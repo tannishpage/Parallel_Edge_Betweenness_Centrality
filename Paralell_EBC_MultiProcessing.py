@@ -12,6 +12,9 @@ from networkx.utils import py_random_state
 import multiprocessing
 import time
 from pytictoc import TicToc
+import matplotlib.pyplot as plt
+from matplotlib import animation
+from matplotlib.patches import Rectangle
 
 #Custom thread class
 class SubProcess(multiprocessing.Process):
@@ -92,7 +95,7 @@ def edge_betweenness_centrality(G, k=None, normalized=True, weight=None, seed=No
     # Creating a queue to store all the betweenness values computed by sup-processes
     accumulators = multiprocessing.Queue()
     start = 0
-    number_of_workers = 16 # Change if necessary
+    number_of_workers = 8 # Change if necessary
     step_size = len(nodes)//number_of_workers
     end = start + step_size
     pid = 0
@@ -256,7 +259,7 @@ def _add_edge_keys(G, betweenness, weight=None):
     return edge_bc
 
 def best_edge(G):
-    betweenness = edge_betweenness_centrality(G)
+    betweenness = edge_betweenness_centrality(G, verbose=False)
     return max(betweenness, key=betweenness.get)
     
 def pop_centrality_best_edge(G):
@@ -291,6 +294,7 @@ def girvan_newman(G, most_valuable_edge=None):
     g.remove_edges_from(nx.selfloop_edges(g))
     while g.number_of_edges() > 0:
         yield _without_most_central_edges(g, most_valuable_edge)
+        # TODO SAVE THE GRAPH DOWN TO A FILE (ADJ LIST)
 
 
 def _without_most_central_edges(G, most_valuable_edge):
@@ -309,35 +313,66 @@ if __name__ == "__main__":
     r.seed(9090)
     G = nx.Graph()
     random_graph_nodes = [x for x in range(0, 500)]
-    random_graph_nodes2 = [x for x in range(500, 1000)]
+    random_graph_nodes2 = [x for x in range(1000, 2000)]
 
-    for x in range(0, 100000):
+    for x in range(0, 15000):
         v1 = r.choice(random_graph_nodes)
         v2 = r.choice(random_graph_nodes)
-        if v1 != v2:
-            G.add_edge(v1, v2)
-        
         v3 = r.choice(random_graph_nodes2)
         v4 = r.choice(random_graph_nodes2)
-        if v3 != v4:
-            G.add_edge(v3, v4)
 
-    G.add_edge(v3, v2)
-    print(v3, v2)
-        
+        if r.uniform(0, 1) >= 0.95:
+            if v3 != v4:
+                G.add_edge(v3, v4)
+
+        if r.uniform(0, 1) >= 0.5:
+            if v1 != v2:
+                G.add_edge(v1, v2)
+
+        if r.uniform(0, 1) >= 0.9999:
+            G.add_edge(v3, v2)
+
+        if r.uniform(0, 1) >= 0.9999:
+            G.add_edge(v1, v4)
 
     print(f"Number of Nodes: {G.number_of_nodes()}\nNumber of Edges: {G.number_of_edges()}")
 
-    # nx.draw(G)
-    # plt.show()
+    nx.draw(G, node_size=10)
+    plt.show()
 
     timer = TicToc()
 
     community_gen = girvan_newman(G, best_edge)
     print("Starting community detection")
     timer.tic()
-    for com in community_gen:
+    counts = []
+    for n_iteration, communities in enumerate(community_gen):
         timer.toc()
         timer.tic()
-        print("Number of Components:", len(com))
-        break # Exiting after first iteration
+        print(f"Number of Components in iteration {n_iteration}:{len(communities)}")
+        # plt.figure()
+        length_of_comms = []
+        for i, com in enumerate(communities):
+            # Can change 1 to a larger number to only store larger communities
+            if len(com) >= 1:
+                print("Number of nodes in component:", len(com))
+                length_of_comms.append(len(com))
+        counts.append(length_of_comms)
+
+        if n_iteration == 10:
+            # STOPPING CONDITION
+            break
+    ##### Use code below to create an animated plot ####
+    # fig, ax = plt.subplots()
+    # bar_plot = ax.bar(range(len(counts[-1])), [0 for _ in range(len(counts[-1]))])
+    # ax.set_ylim(0, 1000)
+    
+    # def animate(i):
+    #     new_bar_plot = []
+    #     for bar_num in range(len(counts[i])):
+    #         bar_plot[bar_num].set_height(counts[i][bar_num])
+    #     return bar_plot
+    
+    # animate(0)    
+    # anim = animation.FuncAnimation(fig,animate, frames=10, interval=200, blit=False)
+    # anim.save(filename="./component_sizes_over_time.gif", writer="pillow")
